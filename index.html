@@ -297,12 +297,13 @@
   }
   .glossary-word {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 14px;
+    font-size: 19px;
     color: var(--gold-light);
     font-style: italic;
+    line-height: 1.1;
   }
   .glossary-pt {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--muted);
     letter-spacing: .05em;
   }
@@ -653,6 +654,30 @@ function draw() {
   drawSnake();
 }
 
+function snakeSegColor(t, alpha) {
+  // t = 0 (head) → 1 (tail)
+  // Color journey: gold → amber → orange → crimson → deep red
+  // Driven by score (level) so it evolves as snake grows
+  const palette = [
+    [196, 164,  90],  // gold
+    [210, 140,  50],  // amber
+    [220, 100,  30],  // orange
+    [200,  60,  40],  // coral-red
+    [160,  30,  50],  // crimson
+    [110,  20,  60],  // deep red-violet
+  ];
+  // Head color = based on current level (0-5 index)
+  const lvlIdx = Math.min(level - 1, palette.length - 1);
+  // Tail shifts one step further along palette
+  const tailIdx = Math.min(lvlIdx + 1, palette.length - 1);
+  const [r1,g1,b1] = palette[lvlIdx];
+  const [r2,g2,b2] = palette[tailIdx];
+  const r = Math.round(r1 + (r2-r1)*t);
+  const g = Math.round(g1 + (g2-g1)*t);
+  const b = Math.round(b1 + (b2-b1)*t);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function drawSnake() {
   const len = snake.length;
   snake.forEach((seg, i) => {
@@ -660,12 +685,15 @@ function drawSnake() {
     const x = seg.x * CELL;
     const y = seg.y * CELL;
     const alpha = 1 - t * 0.6;
+    const headColor = snakeSegColor(0, 1);
 
     if (i === 0) {
       ctx.save();
-      ctx.shadowColor  = 'rgba(196,164,90,.7)';
-      ctx.shadowBlur   = 18;
-      ctx.fillStyle    = '#C4A45A';
+      const [hr,hg,hb] = [0,0,0]; // unused — use headColor string
+      // derive shadow from head color with lower alpha
+      ctx.shadowColor = snakeSegColor(0, .55);
+      ctx.shadowBlur  = 18;
+      ctx.fillStyle   = headColor;
       roundRect(ctx, x + 3, y + 3, CELL - 6, CELL - 6, 6);
       ctx.fill();
       ctx.restore();
@@ -677,12 +705,12 @@ function drawSnake() {
 
     } else {
       const gAlpha = Math.max(0.08, alpha);
-      ctx.fillStyle = `rgba(196,164,90,${gAlpha})`;
+      ctx.fillStyle = snakeSegColor(t, gAlpha);
       roundRect(ctx, x + 4 + t * 2, y + 4 + t * 2, CELL - 8 - t * 4, CELL - 8 - t * 4, 5);
       ctx.fill();
 
       if (alpha > 0.3) {
-        ctx.fillStyle = `rgba(212,186,122,${gAlpha * 0.4})`;
+        ctx.fillStyle = snakeSegColor(t, gAlpha * 0.35);
         roundRect(ctx, x + 7, y + 7, CELL - 14, 4, 2);
         ctx.fill();
       }
